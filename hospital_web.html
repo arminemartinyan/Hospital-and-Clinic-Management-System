@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HospitalDB — Management Console</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f5;--surface:#fff;--surface2:#f7f8fa;--border:#e2e6ea;
+  --text:#0d1117;--text2:#5a6474;--text3:#9ba4b0;
+  --accent:#0a6eba;--accent-lt:#e8f2fc;
+  --green:#05a67a;--yellow:#f59e0b;--red:#e03a3a;--purple:#7c3aed;
+  --r:10px;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',system-ui,sans-serif;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;overflow:hidden;height:100vh}
+/* Layout */
+.app{display:flex;height:100vh}
+.sidebar{width:224px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* Sidebar */
+.logo{padding:18px 18px 14px;border-bottom:1px solid var(--border)}
+.logo-title{font-size:15px;font-weight:600;letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+.nav{padding:8px 6px;flex:1}
+.nav-sec{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;padding:12px 10px 4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .12s;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent-lt);color:var(--accent);font-weight:500}
+.nav-icon{width:18px;text-align:center;font-size:14px}
+.nav-cnt{margin-left:auto;background:var(--bg);color:var(--text3);font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:9px}
+.nav-item.active .nav-cnt{background:#d0e8f9;color:var(--accent)}
+/* Topbar */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.topbar-info .ttl{font-size:16px;font-weight:600;letter-spacing:-.3px}
+.topbar-info .sub{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+/* Content */
+.content{flex:1;overflow-y:auto;padding:22px 24px}
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
+.sc-lbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px}
+.sc-val{font-size:28px;font-weight:300;font-family:var(--mono);color:var(--text);letter-spacing:-1px;line-height:1}
+.sc-meta{font-size:11px;margin-top:4px;color:var(--text3)}
+.sc-meta.up{color:var(--green)}.sc-meta.warn{color:var(--yellow)}
+/* Toolbar */
+.toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.search-box{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 12px;flex:1;max-width:320px}
+.search-box input{border:none;background:none;outline:none;font-size:13px;color:var(--text);font-family:var(--sans);width:100%}
+.search-box input::placeholder{color:var(--text3)}
+select.fsel{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:12px;color:var(--text2);font-family:var(--sans);outline:none;cursor:pointer}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:7px;font-size:13px;font-family:var(--sans);cursor:pointer;border:none;font-weight:500;transition:all .12s;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#085ea0}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#c02c2c}
+.btn-outline{background:var(--surface);border:1px solid var(--border);color:var(--text2)}.btn-outline:hover{background:var(--accent-lt);border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:4px 9px;font-size:12px}
+/* Table card */
+.tc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.tc-head{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.tc-title{font-size:14px;font-weight:600}
+.tc-cnt{font-size:11px;color:var(--text3);font-family:var(--mono)}
+table{width:100%;border-collapse:collapse}
+th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#fafbfc}
+.tdid{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.tdbold{font-weight:500;color:var(--text)}
+.tdmono{font-family:var(--mono);font-size:12px}
+.tdmuted{color:var(--text3);font-size:12px}
+.acel{display:flex;gap:5px}
+/* Badges */
+.bdg{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;font-family:var(--mono)}
+.bg{background:#e6f4ee;color:#0d7a46}.bb{background:#e8f2fc;color:#0a6eba}
+.by{background:#fef6e4;color:#a86400}.br{background:#fde8e8;color:#b91c1c}
+.bgr{background:#f0f2f5;color:#5a6474}.bp{background:#f0edfe;color:#5139b7}
+.stars{color:#f59e0b;font-size:12px;letter-spacing:1px}
+/* Avatar */
+.av{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;margin-right:7px;flex-shrink:0}
+.ncell{display:flex;align-items:center}
+/* Pagination */
+.pag{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--text3)}
+.pbtns{display:flex;gap:3px}
+.pbtn{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 9px;font-size:11px;cursor:pointer;color:var(--text2);font-family:var(--sans)}
+.pbtn:hover{background:var(--accent-lt);color:var(--accent);border-color:var(--accent)}
+.pbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Modal */
+.mb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:200;align-items:center;justify-content:center}
+.mb.open{display:flex}
+.modal{background:var(--surface);border-radius:14px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.mhd{padding:18px 22px 0;display:flex;align-items:center;justify-content:space-between}
+.mtitle{font-size:15px;font-weight:600}
+.mclose{background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px}
+.mclose:hover{color:var(--text)}
+.mbody{padding:18px 22px}
+.mfoot{padding:0 22px 18px;display:flex;justify-content:flex-end;gap:8px}
+/* Form */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fgrid .full{grid-column:1/-1}
+.fg{display:flex;flex-direction:column;gap:4px}
+.flbl{font-size:11px;font-weight:500;color:var(--text2)}
+.flbl span{color:var(--red);margin-left:2px}
+.fi,.fsel,.fta{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text);font-family:var(--sans);background:var(--surface);outline:none;transition:border .12s}
+.fi:focus,.fsel:focus,.fta:focus{border-color:var(--accent)}
+.fi.err{border-color:var(--red)}
+.ferr{font-size:11px;color:var(--red);min-height:14px}
+.fta{resize:vertical;min-height:64px}
+/* Confirm */
+.cfm-bk{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:300;align-items:center;justify-content:center}
+.cfm-bk.open{display:flex}
+.cfm{background:var(--surface);border-radius:12px;width:340px;padding:24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.cfm-ico{font-size:32px;margin-bottom:10px}
+.cfm-msg{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.6}
+.cfm-btns{display:flex;gap:8px;justify-content:center}
+/* Toast */
+.toasts{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px}
+.toast{background:var(--text);color:#fff;padding:9px 14px;border-radius:8px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.2);animation:tin .2s ease}
+.toast.ok{background:var(--green)}.toast.er{background:var(--red)}
+@keyframes tin{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+/* Empty */
+.empty{padding:40px;text-align:center;color:var(--text3)}
+.empty .eico{font-size:32px;margin-bottom:10px}
+/* Dashboard */
+.dg{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.dc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.dct{font-size:13px;font-weight:600;margin-bottom:12px}
+.brow{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px}
+.blbl{width:130px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btrack{flex:1;background:var(--bg);border-radius:3px;height:6px;overflow:hidden}
+.bfill{height:100%;border-radius:3px;transition:width .5s}
+.bval{width:38px;text-align:right;font-family:var(--mono);font-size:10px;color:var(--text3)}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
+.srow:last-child{border:none}
+.sdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px}
+</style>
+</head>
+<body>
+
+<div class="app">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-title">⚕ HospitalDB</div>
+    <div class="logo-sub">Management Console</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-sec">Overview</div>
+    <button class="nav-item active" onclick="go('dashboard')"><span class="nav-icon">◈</span>Dashboard</button>
+    <div class="nav-sec">Tables</div>
+    <button class="nav-item" onclick="go('patients')"><span class="nav-icon">👤</span>Patients<span class="nav-cnt" id="nb-pat">42</span></button>
+    <button class="nav-item" onclick="go('doctors')"><span class="nav-icon">🩺</span>Doctors<span class="nav-cnt" id="nb-doc">15</span></button>
+    <button class="nav-item" onclick="go('departments')"><span class="nav-icon">🏥</span>Departments<span class="nav-cnt">8</span></button>
+    <button class="nav-item" onclick="go('rooms')"><span class="nav-icon">🚪</span>Rooms<span class="nav-cnt">20</span></button>
+    <button class="nav-item" onclick="go('appointments')"><span class="nav-icon">📅</span>Appointments<span class="nav-cnt" id="nb-apt">60</span></button>
+    <button class="nav-item" onclick="go('bills')"><span class="nav-icon">💳</span>Bills<span class="nav-cnt">45</span></button>
+    <button class="nav-item" onclick="go('ratings')"><span class="nav-icon">⭐</span>Ratings<span class="nav-cnt">38</span></button>
+    <button class="nav-item" onclick="go('promotions')"><span class="nav-icon">🎟</span>Promotions<span class="nav-cnt">6</span></button>
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-info">
+      <div class="ttl" id="pg-title">Dashboard</div>
+      <div class="sub" id="pg-sub">HospitalDB · Overview</div>
+    </div>
+    <div class="topbar-right" id="topbar-actions"></div>
+  </header>
+  <div class="content" id="content"></div>
+</div>
+</div>
+
+<!-- CONFIRM -->
+<div class="cfm-bk" id="cfm-bk">
+  <div class="cfm">
+    <div class="cfm-ico">⚠️</div>
+    <div class="cfm-msg" id="cfm-msg">Are you sure?</div>
+    <div class="cfm-btns">
+      <button class="btn btn-outline" onclick="cfmResolve(false)">Cancel</button>
+      <button class="btn btn-danger"  onclick="cfmResolve(true)">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════
+const DB = {
+patients:[
+  {PatientID:1,FirstName:"James",LastName:"Anderson",Email:"james.anderson@email.com",Phone:"555-2001",DateOfBirth:"1985-03-12",Gender:"Male",RegistrationDate:"2023-01-05"},
+  {PatientID:2,FirstName:"Sophia",LastName:"Martinez",Email:"sophia.martinez@email.com",Phone:"555-2002",DateOfBirth:"1992-07-24",Gender:"Female",RegistrationDate:"2023-01-10"},
+  {PatientID:3,FirstName:"Liam",LastName:"Thompson",Email:"liam.thompson@email.com",Phone:null,DateOfBirth:"1978-11-05",Gender:"Male",RegistrationDate:"2023-01-15"},
+  {PatientID:4,FirstName:"Olivia",LastName:"Wilson",Email:"olivia.wilson@email.com",Phone:"555-2004",DateOfBirth:"2000-02-18",Gender:"Female",RegistrationDate:"2023-02-01"},
+  {PatientID:5,FirstName:"Noah",LastName:"Brown",Email:"noah.brown@email.com",Phone:"555-2005",DateOfBirth:"1990-06-30",Gender:"Male",RegistrationDate:"2023-02-10"},
+  {PatientID:6,FirstName:"Emma",LastName:"Davis",Email:"emma.davis@email.com",Phone:"555-2006",DateOfBirth:"1988-09-14",Gender:"Female",RegistrationDate:"2023-02-20"},
+  {PatientID:7,FirstName:"Oliver",LastName:"Garcia",Email:"oliver.garcia@email.com",Phone:null,DateOfBirth:"1975-04-22",Gender:"Male",RegistrationDate:"2023-03-01"},
+  {PatientID:8,FirstName:"Ava",LastName:"Rodriguez",Email:"ava.rodriguez@email.com",Phone:"555-2008",DateOfBirth:"1995-12-01",Gender:"Female",RegistrationDate:"2023-03-10"},
+  {PatientID:9,FirstName:"William",LastName:"Lee",Email:"william.lee@email.com",Phone:"555-2009",DateOfBirth:"1983-08-17",Gender:"Male",RegistrationDate:"2023-03-20"},
+  {PatientID:10,FirstName:"Isabella",LastName:"Harris",Email:"isabella.harris@email.com",Phone:"555-2010",DateOfBirth:"1997-05-09",Gender:"Female",RegistrationDate:"2023-04-01"},
+  {PatientID:11,FirstName:"James",LastName:"Clark",Email:"james.clark@email.com",Phone:"555-2011",DateOfBirth:"1969-02-14",Gender:"Male",RegistrationDate:"2023-04-05"},
+  {PatientID:12,FirstName:"Mia",LastName:"Lewis",Email:"mia.lewis@email.com",Phone:"555-2012",DateOfBirth:"2002-11-30",Gender:"Female",RegistrationDate:"2023-04-10"},
+],
+doctors:[
+  {DoctorID:1,FirstName:"Sarah",LastName:"Mitchell",LicenseNumber:"LIC-1001",Specialization:"Cardiology",Rating:4.8,Status:"Available"},
+  {DoctorID:2,FirstName:"Robert",LastName:"Chen",LicenseNumber:"LIC-1002",Specialization:"Neurology",Rating:4.9,Status:"Available"},
+  {DoctorID:3,FirstName:"Emily",LastName:"Watson",LicenseNumber:"LIC-1003",Specialization:"Pediatrics",Rating:4.7,Status:"Busy"},
+  {DoctorID:4,FirstName:"Michael",LastName:"Torres",LicenseNumber:"LIC-1004",Specialization:"Orthopedics",Rating:4.6,Status:"Available"},
+  {DoctorID:5,FirstName:"Jessica",LastName:"Kim",LicenseNumber:"LIC-1005",Specialization:"Dermatology",Rating:4.5,Status:"Off-Duty"},
+  {DoctorID:6,FirstName:"David",LastName:"Patel",LicenseNumber:"LIC-1006",Specialization:"Oncology",Rating:4.9,Status:"Available"},
+  {DoctorID:7,FirstName:"Laura",LastName:"Nguyen",LicenseNumber:"LIC-1007",Specialization:"Neurology",Rating:4.7,Status:"Busy"},
+  {DoctorID:8,FirstName:"James",LastName:"Wilson",LicenseNumber:"LIC-1008",Specialization:"General Surgery",Rating:4.6,Status:"Available"},
+  {DoctorID:9,FirstName:"Angela",LastName:"Brown",LicenseNumber:"LIC-1009",Specialization:"Cardiology",Rating:4.8,Status:"Available"},
+  {DoctorID:10,FirstName:"Kevin",LastName:"Martinez",LicenseNumber:"LIC-1010",Specialization:"Oncology",Rating:4.4,Status:"Off-Duty"},
+],
+departments:[
+  {DepartmentID:1,Name:"Cardiology",Location:"Building A, Floor 3",RoomCount:2,AppointmentCount:14},
+  {DepartmentID:2,Name:"Neurology",Location:"Building B, Floor 2",RoomCount:2,AppointmentCount:12},
+  {DepartmentID:3,Name:"Pediatrics",Location:"Building C, Floor 1",RoomCount:1,AppointmentCount:8},
+  {DepartmentID:4,Name:"Orthopedics",Location:"Building A, Floor 4",RoomCount:1,AppointmentCount:7},
+  {DepartmentID:5,Name:"Dermatology",Location:"Building D, Floor 1",RoomCount:1,AppointmentCount:5},
+  {DepartmentID:6,Name:"Oncology",Location:"Building B, Floor 5",RoomCount:1,AppointmentCount:9},
+  {DepartmentID:7,Name:"General Surgery",Location:"Building A, Floor 2",RoomCount:1,AppointmentCount:6},
+  {DepartmentID:8,Name:"Emergency",Location:"Building E, Ground Floor",RoomCount:2,AppointmentCount:11},
+],
+rooms:[
+  {RoomID:1,DepartmentID:1,DepartmentName:"Cardiology",RoomNumber:"C-101",RoomType:"General",Capacity:2,Status:"Available"},
+  {RoomID:2,DepartmentID:1,DepartmentName:"Cardiology",RoomNumber:"C-ICU1",RoomType:"ICU",Capacity:1,Status:"Occupied"},
+  {RoomID:3,DepartmentID:2,DepartmentName:"Neurology",RoomNumber:"N-201",RoomType:"General",Capacity:3,Status:"Available"},
+  {RoomID:4,DepartmentID:2,DepartmentName:"Neurology",RoomNumber:"N-OR1",RoomType:"Operating",Capacity:5,Status:"Occupied"},
+  {RoomID:5,DepartmentID:3,DepartmentName:"Pediatrics",RoomNumber:"P-101",RoomType:"General",Capacity:4,Status:"Available"},
+  {RoomID:6,DepartmentID:4,DepartmentName:"Orthopedics",RoomNumber:"O-301",RoomType:"Recovery",Capacity:2,Status:"Maintenance"},
+  {RoomID:7,DepartmentID:7,DepartmentName:"General Surgery",RoomNumber:"GS-OR1",RoomType:"Operating",Capacity:6,Status:"Available"},
+  {RoomID:8,DepartmentID:8,DepartmentName:"Emergency",RoomNumber:"E-001",RoomType:"General",Capacity:8,Status:"Occupied"},
+  {RoomID:9,DepartmentID:8,DepartmentName:"Emergency",RoomNumber:"E-ICU1",RoomType:"ICU",Capacity:2,Status:"Occupied"},
+  {RoomID:10,DepartmentID:6,DepartmentName:"Oncology",RoomNumber:"ONC-501",RoomType:"General",Capacity:2,Status:"Available"},
+],
+appointments:[
+  {AppointmentID:1,PatientID:1,DoctorID:1,DepartmentID:1,PatientName:"James Anderson",DoctorName:"Dr. Sarah Mitchell",DepartmentName:"Cardiology",ScheduledTime:"2024-01-10 09:00",Status:"Completed",ConsultationFee:250},
+  {AppointmentID:2,PatientID:2,DoctorID:2,DepartmentID:2,PatientName:"Sophia Martinez",DoctorName:"Dr. Robert Chen",DepartmentName:"Neurology",ScheduledTime:"2024-01-12 10:30",Status:"Completed",ConsultationFee:300},
+  {AppointmentID:3,PatientID:3,DoctorID:3,DepartmentID:3,PatientName:"Liam Thompson",DoctorName:"Dr. Emily Watson",DepartmentName:"Pediatrics",ScheduledTime:"2024-01-15 11:00",Status:"Cancelled",ConsultationFee:150},
+  {AppointmentID:4,PatientID:4,DoctorID:4,DepartmentID:4,PatientName:"Olivia Wilson",DoctorName:"Dr. Michael Torres",DepartmentName:"Orthopedics",ScheduledTime:"2024-01-20 14:00",Status:"Completed",ConsultationFee:220},
+  {AppointmentID:5,PatientID:5,DoctorID:5,DepartmentID:5,PatientName:"Noah Brown",DoctorName:"Dr. Jessica Kim",DepartmentName:"Dermatology",ScheduledTime:"2024-01-22 09:30",Status:"Scheduled",ConsultationFee:180},
+  {AppointmentID:6,PatientID:6,DoctorID:6,DepartmentID:6,PatientName:"Emma Davis",DoctorName:"Dr. David Patel",DepartmentName:"Oncology",ScheduledTime:"2024-01-25 13:00",Status:"Completed",ConsultationFee:400},
+  {AppointmentID:7,PatientID:2,DoctorID:7,DepartmentID:2,PatientName:"Sophia Martinez",DoctorName:"Dr. Laura Nguyen",DepartmentName:"Neurology",ScheduledTime:"2024-02-01 10:00",Status:"Completed",ConsultationFee:300},
+  {AppointmentID:8,PatientID:8,DoctorID:8,DepartmentID:7,PatientName:"Ava Rodriguez",DoctorName:"Dr. James Wilson",DepartmentName:"General Surgery",ScheduledTime:"2024-02-05 08:00",Status:"Scheduled",ConsultationFee:500},
+  {AppointmentID:9,PatientID:1,DoctorID:9,DepartmentID:1,PatientName:"James Anderson",DoctorName:"Dr. Angela Brown",DepartmentName:"Cardiology",ScheduledTime:"2024-02-08 15:00",Status:"Completed",ConsultationFee:250},
+  {AppointmentID:10,PatientID:2,DoctorID:2,DepartmentID:2,PatientName:"William Lee",DoctorName:"Dr. Robert Chen",DepartmentName:"Neurology",ScheduledTime:"2024-02-10 11:30",Status:"Cancelled",ConsultationFee:280},
+],
+bills:[
+  {BillID:1,AppointmentID:1,PatientName:"James Anderson",Amount:250,Method:"Card",BillDate:"2024-01-10",Status:"Paid"},
+  {BillID:2,AppointmentID:2,PatientName:"Sophia Martinez",Amount:300,Method:"Insurance",BillDate:"2024-01-12",Status:"Paid"},
+  {BillID:3,AppointmentID:4,PatientName:"Olivia Wilson",Amount:220,Method:"Cash",BillDate:"2024-01-20",Status:"Paid"},
+  {BillID:4,AppointmentID:6,PatientName:"Emma Davis",Amount:400,Method:"Insurance",BillDate:"2024-01-25",Status:"Paid"},
+  {BillID:5,AppointmentID:7,PatientName:"Sophia Martinez",Amount:300,Method:"Card",BillDate:"2024-02-01",Status:"Paid"},
+  {BillID:6,AppointmentID:9,PatientName:"James Anderson",Amount:250,Method:"Cash",BillDate:"2024-02-08",Status:"Paid"},
+  {BillID:7,AppointmentID:5,PatientName:"Noah Brown",Amount:180,Method:"Card",BillDate:"2024-01-22",Status:"Pending"},
+  {BillID:8,AppointmentID:8,PatientName:"Ava Rodriguez",Amount:500,Method:"Insurance",BillDate:"2024-02-05",Status:"Failed"},
+],
+ratings:[
+  {RatingID:1,AppointmentID:1,PatientName:"James Anderson",DoctorName:"Dr. Sarah Mitchell",DoctorRating:5,PatientRating:4,Comment:"Excellent care!"},
+  {RatingID:2,AppointmentID:2,PatientName:"Sophia Martinez",DoctorName:"Dr. Robert Chen",DoctorRating:5,PatientRating:5,Comment:"Very thorough."},
+  {RatingID:3,AppointmentID:4,PatientName:"Olivia Wilson",DoctorName:"Dr. Michael Torres",DoctorRating:4,PatientRating:4,Comment:"Good experience."},
+  {RatingID:4,AppointmentID:6,PatientName:"Emma Davis",DoctorName:"Dr. David Patel",DoctorRating:5,PatientRating:5,Comment:"Highly recommended."},
+  {RatingID:5,AppointmentID:7,PatientName:"Sophia Martinez",DoctorName:"Dr. Laura Nguyen",DoctorRating:4,PatientRating:3,Comment:"Satisfactory."},
+  {RatingID:6,AppointmentID:9,PatientName:"James Anderson",DoctorName:"Dr. Angela Brown",DoctorRating:5,PatientRating:5,Comment:"Outstanding!"},
+],
+promotions:[
+  {PromoID:1,Code:"WELCOME10",Discount:10,ExpiryDate:"2025-12-31",TimesUsed:5},
+  {PromoID:2,Code:"SENIOR20",Discount:20,ExpiryDate:"2025-06-30",TimesUsed:8},
+  {PromoID:3,Code:"NEWYR15",Discount:15,ExpiryDate:"2024-01-31",TimesUsed:3},
+  {PromoID:4,Code:"SUMMER25",Discount:25,ExpiryDate:"2025-08-31",TimesUsed:2},
+  {PromoID:5,Code:"CARD5",Discount:5,ExpiryDate:"2026-12-31",TimesUsed:12},
+  {PromoID:6,Code:"INS30",Discount:30,ExpiryDate:"2024-03-31",TimesUsed:1},
+],
+};
+let nextId={patients:13,doctors:11,departments:9,rooms:11,appointments:11,bills:9,ratings:7,promotions:7};
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+const AVCOLS=["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#06b6d4"];
+function avCol(n){let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%AVCOLS.length;return AVCOLS[h];}
+function av(n){const i=n.replace("Dr. ","").split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();const c=avCol(n);return `<span class="av" style="background:${c}22;color:${c}">${i}</span>`;}
+function sts(n){n=Math.round(n);return`<span class="stars">${"★".repeat(n)}${"☆".repeat(5-n)}</span>`;}
+const BM={Completed:"bg",Scheduled:"bb",Cancelled:"br",Paid:"bg",Pending:"by",Failed:"br",Available:"bg",Busy:"by","Off-Duty":"bgr",Male:"bb",Female:"bg",Other:"bgr",ICU:"br",Operating:"by",Recovery:"bg",General:"bb",Consultation:"bgr",Occupied:"by",Maintenance:"br",Cash:"bgr",Card:"bb",Insurance:"bp"};
+function bdg(v){return`<span class="bdg ${BM[v]||"bgr"}">${v}</span>`;}
+function toast(msg,type="ok"){const t=document.createElement("div");t.className=`toast ${type}`;t.textContent=msg;document.getElementById("toasts").appendChild(t);setTimeout(()=>t.remove(),3000);}
+
+let _cfmRes=null;
+function confirm2(msg){
+  document.getElementById("cfm-msg").textContent=msg;
+  document.getElementById("cfm-bk").classList.add("open");
+  return new Promise(r=>{_cfmRes=r;});
+}
+function cfmResolve(v){document.getElementById("cfm-bk").classList.remove("open");if(_cfmRes){_cfmRes(v);_cfmRes=null;}}
+
+function openModal(id){document.getElementById(id).classList.add("open");}
+function closeModal(id){
+  document.getElementById(id).classList.remove("open");
+  document.querySelectorAll(`#${id} .fi,#${id} .fsel,#${id} .fta`).forEach(e=>{e.value="";e.classList.remove("err");});
+  document.querySelectorAll(`#${id} .ferr`).forEach(e=>e.textContent="");
+  document.getElementById("edit-id").value="";
+}
+
+function deb(fn,d=280){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),d);};}
+
+// Pagination
+function pag(containerId,total,page,per,fn){
+  const pages=Math.ceil(total/per),s=(page-1)*per+1,e=Math.min(page*per,total);
+  let btns="";for(let i=1;i<=pages;i++)btns+=`<button class="pbtn${i===page?" active":""}" onclick="${fn}(${i})">${i}</button>`;
+  document.getElementById(containerId).innerHTML=`<span>Showing ${s}–${e} of ${total}</span><div class="pbtns">${btns}</div>`;
+}
+
+// ══════════════════════════════════════════════
+//  NAV
+// ══════════════════════════════════════════════
+let curPage="dashboard";
+const titles={dashboard:["Dashboard","HospitalDB · Overview"],patients:["Patients","patients table"],doctors:["Doctors","doctors table"],departments:["Departments","departments table"],rooms:["Rooms","rooms table"],appointments:["Appointments","appointments table"],bills:["Bills","bills table"],ratings:["Ratings","ratings table"],promotions:["Promotions","promotions table"]};
+
+function go(page){
+  curPage=page;
+  document.querySelectorAll(".nav-item").forEach(el=>el.classList.toggle("active",el.getAttribute("onclick").includes(`'${page}'`)));
+  const [ttl,sub]=titles[page];
+  document.getElementById("pg-title").textContent=ttl;
+  document.getElementById("pg-sub").textContent=sub;
+  // Reset state
+  curQ="";curFilter={};curP=1;
+  const si=document.getElementById("search-inp");if(si)si.value="";
+  const pages={dashboard:renderDashboard,patients:renderPatients,doctors:renderDoctors,departments:renderDepartments,rooms:renderRooms,appointments:renderAppointments,bills:renderBills,ratings:renderRatings,promotions:renderPromotions};
+  pages[page]?.();
+}
+
+// ══════════════════════════════════════════════
+//  SHARED STATE
+// ══════════════════════════════════════════════
+let curQ="",curFilter={},curP=1;
+const PER=8;
+
+// ══════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════
+function renderDashboard(){
+  document.getElementById("topbar-actions").innerHTML="";
+  const paid=DB.bills.filter(b=>b.Status==="Paid").reduce((s,b)=>s+b.Amount,0);
+  const completed=DB.appointments.filter(a=>a.Status==="Completed").length;
+  const avail=DB.doctors.filter(d=>d.Status==="Available").length;
+  const avgR=(DB.ratings.reduce((s,r)=>s+r.DoctorRating,0)/DB.ratings.length).toFixed(1);
+
+  const apptSt={Completed:0,Scheduled:0,Cancelled:0};
+  DB.appointments.forEach(a=>apptSt[a.Status]=(apptSt[a.Status]||0)+1);
+  const billSt={Paid:0,Pending:0,Failed:0};
+  DB.bills.forEach(b=>billSt[b.Status]=(billSt[b.Status]||0)+1);
+  const deptCnt={};DB.appointments.forEach(a=>deptCnt[a.DepartmentName]=(deptCnt[a.DepartmentName]||0)+1);
+  const topDepts=Object.entries(deptCnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxD=Math.max(...topDepts.map(x=>x[1]),1);
+  const docSt={Available:0,Busy:0,"Off-Duty":0};DB.doctors.forEach(d=>docSt[d.Status]=(docSt[d.Status]||0)+1);
+
+  function srow(lbl,cnt,tot,col){
+    const p=tot?Math.round(cnt/tot*100):0;
+    return`<div class="srow"><span><span class="sdot" style="background:${col}"></span>${lbl}</span><span style="font-family:var(--mono);font-size:12px">${cnt} <span style="color:var(--text3)">(${p}%)</span></span></div>`;
+  }
+  const SC={Completed:"#05a67a",Scheduled:"#0a6eba",Cancelled:"#e03a3a",Paid:"#05a67a",Pending:"#f59e0b",Failed:"#e03a3a",Available:"#05a67a",Busy:"#f59e0b","Off-Duty":"#9ba4b0"};
+  const atot=Object.values(apptSt).reduce((a,b)=>a+b,0);
+  const btot=Object.values(billSt).reduce((a,b)=>a+b,0);
+  const dtot=Object.values(docSt).reduce((a,b)=>a+b,0);
+
+  document.getElementById("content").innerHTML=`
+  <div class="stats">
+    <div class="sc"><div class="sc-lbl">Total Patients</div><div class="sc-val">${DB.patients.length}</div><div class="sc-meta">registered in system</div></div>
+    <div class="sc"><div class="sc-lbl">Available Doctors</div><div class="sc-val">${avail}</div><div class="sc-meta warn">${DB.doctors.length} total doctors</div></div>
+    <div class="sc"><div class="sc-lbl">Appointments</div><div class="sc-val">${DB.appointments.length}</div><div class="sc-meta up">${completed} completed</div></div>
+    <div class="sc"><div class="sc-lbl">Revenue Collected</div><div class="sc-val">$${paid.toLocaleString()}</div><div class="sc-meta up">from paid bills</div></div>
+  </div>
+  <div class="dg">
+    <div class="dc"><div class="dct">Appointment Status</div>
+      ${["Completed","Scheduled","Cancelled"].map(s=>srow(s,apptSt[s]||0,atot,SC[s])).join("")}
+    </div>
+    <div class="dc"><div class="dct">Bill Payment Status</div>
+      ${["Paid","Pending","Failed"].map(s=>srow(s,billSt[s]||0,btot,SC[s])).join("")}
+      <div class="srow" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><span style="font-weight:500">Total Collected</span><span style="font-family:var(--mono);font-size:13px;color:var(--green);font-weight:500">$${paid.toLocaleString()}</span></div>
+    </div>
+    <div class="dc"><div class="dct">Top Departments by Appointments</div>
+      ${topDepts.map(([n,c])=>`<div class="brow"><span class="blbl">${n}</span><div class="btrack"><div class="bfill" style="width:${c/maxD*100}%;background:var(--accent)"></div></div><span class="bval">${c}</span></div>`).join("")}
+    </div>
+    <div class="dc"><div class="dct">Doctor Availability</div>
+      ${["Available","Busy","Off-Duty"].map(s=>srow(s,docSt[s]||0,dtot,SC[s])).join("")}
+      <div class="srow" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><span style="font-weight:500">Avg Doctor Rating</span><span>${sts(parseFloat(avgR))} <span style="font-family:var(--mono);font-size:11px;color:var(--text3)">${avgR}</span></span></div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+//  PATIENTS
+// ══════════════════════════════════════════════
+function renderPatients(){
+  document.getElementById("topbar-actions").innerHTML=`<button class="btn btn-primary" onclick="openPatientModal()">+ Add Patient</button>`;
+  document.getElementById("content").innerHTML=`
+  <div class="toolbar">
+    <div class="search-box"><span style="color:var(--text3)">⌕</span><input id="search-inp" placeholder="Search name, email, phone…" oninput="pSearch(this.value)"></div>
+  </div>
+  <div class="tc">
+    <div class="tc-head"><span class="tc-title">Patients</span><span class="tc-cnt" id="p-cnt"></span></div>
+    <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Date of Birth</th><th>Gender</th><th>Registered</th><th>Actions</th></tr></thead>
+    <tbody id="p-body"></tbody></table>
+    <div class="pag" id="p-pag"></div>
+  </div>
+  <div class="mb" id="patient-modal">
+    <div class="modal">
+      <div class="mhd"><span class="mtitle" id="pm-title">Add Patient</span><button class="mclose" onclick="closeModal('patient-modal')">×</button></div>
+      <div class="mbody">
+        <input type="hidden" id="edit-id">
+        <div class="fgrid">
+          <div class="fg"><label class="flbl">First Name<span>*</span></label><input class="fi" id="pf-first" placeholder="James"><span class="ferr" id="pe-first"></span></div>
+          <div class="fg"><label class="flbl">Last Name<span>*</span></label><input class="fi" id="pf-last" placeholder="Anderson"><span class="ferr" id="pe-last"></span></div>
+          <div class="fg full"><label class="flbl">Email<span>*</span></label><input class="fi" id="pf-email" type="email" placeholder="james@email.com"><span class="ferr" id="pe-email"></span></div>
+          <div class="fg"><label class="flbl">Phone</label><input class="fi" id="pf-phone" placeholder="555-0001"></div>
+          <div class="fg"><label class="flbl">Date of Birth<span>*</span></label><input class="fi" id="pf-dob" type="date"><span class="ferr" id="pe-dob"></span></div>
+          <div class="fg"><label class="flbl">Gender<span>*</span></label><select class="fsel" id="pf-gender"><option value="">Select…</option><option>Male</option><option>Female</option><option>Other</option></select><span class="ferr" id="pe-gender"></span></div>
+        </div>
+      </div>
+      <div class="mfoot"><button class="btn btn-outline" onclick="closeModal('patient-modal')">Cancel</button><button class="btn btn-primary" onclick="savePatient()">Save Patient</button></div>
+    </div>
+  </div>`;
+  drawPatients();
+}
+function pFiltered(){const q=curQ.toLowerCase();return DB.patients.filter(p=>`${p.FirstName} ${p.LastName} ${p.Email} ${p.Phone||""}`.toLowerCase().includes(q));}
+function drawPatients(){
+  const data=pFiltered(),slice=data.slice((curP-1)*PER,curP*PER);
+  document.getElementById("p-cnt").textContent=`${data.length} records`;
+  document.getElementById("p-body").innerHTML=slice.length?slice.map(p=>`
+    <tr>
+      <td class="tdid">#${p.PatientID}</td>
+      <td><div class="ncell">${av(p.FirstName+" "+p.LastName)}<span class="tdbold">${p.FirstName} ${p.LastName}</span></div></td>
+      <td class="tdmuted">${p.Email}</td><td>${p.Phone||"—"}</td>
+      <td class="tdmono">${p.DateOfBirth}</td><td>${bdg(p.Gender)}</td>
+      <td class="tdmuted">${p.RegistrationDate}</td>
+      <td><div class="acel"><button class="btn btn-outline btn-sm" onclick="editPatient(${p.PatientID})">✏ Edit</button><button class="btn btn-danger btn-sm" onclick="delPatient(${p.PatientID})">✕</button></div></td>
+    </tr>`).join(""):`<tr><td colspan="8"><div class="empty"><div class="eico">🔍</div><p>No patients found</p></div></td></tr>`;
+  pag("p-pag",data.length,curP,PER,"pGoPage");
+}
+function pGoPage(n){curP=n;drawPatients();}
+const pSearch=deb(v=>{curQ=v;curP=1;drawPatients();});
+function openPatientModal(){document.getElementById("pm-title").textContent="Add Patient";openModal("patient-modal");}
+function editPatient(id){
+  const p=DB.patients.find(x=>x.PatientID===id);
+  document.getElementById("pm-title").textContent="Edit Patient";
+  document.getElementById("edit-id").value=id;
+  document.getElementById("pf-first").value=p.FirstName;
+  document.getElementById("pf-last").value=p.LastName;
+  document.getElementById("pf-email").value=p.Email;
+  document.getElementById("pf-phone").value=p.Phone||"";
+  document.getElementById("pf-dob").value=p.DateOfBirth;
+  document.getElementById("pf-gender").value=p.Gender;
+  openModal("patient-modal");
+}
+function savePatient(){
+  const v=id=>document.getElementById(id).value.trim();
+  const err=(id,msg)=>{document.getElementById(id).textContent=msg;};
+  ["pe-first","pe-last","pe-email","pe-dob","pe-gender"].forEach(id=>err(id,""));
+  let ok=true;
+  if(!v("pf-first")){err("pe-first","Required");ok=false;}
+  if(!v("pf-last")){err("pe-last","Required");ok=false;}
+  if(!v("pf-email")||!v("pf-email").includes("@")){err("pe-email","Valid email required");ok=false;}
+  if(!v("pf-dob")){err("pe-dob","Required");ok=false;}
+  if(!v("pf-gender")){err("pe-gender","Required");ok=false;}
+  if(!ok)return;
+  const id=parseInt(document.getElementById("edit-id").value||0);
+  const obj={FirstName:v("pf-first"),LastName:v("pf-last"),Email:v("pf-email"),Phone:v("pf-phone")||null,DateOfBirth:v("pf-dob"),Gender:v("pf-gender"),RegistrationDate:new Date().toISOString().slice(0,10)};
+  if(id){const i=DB.patients.findIndex(x=>x.PatientID===id);DB.patients[i]={...DB.patients[i],...obj};toast("Patient updated!");}
+  else{DB.patients.unshift({PatientID:nextId.patients++,...obj});toast("Patient added!");}
+  closeModal("patient-modal");drawPatients();
+}
+async function delPatient(id){
+  if(!await confirm2("Delete this patient? Their appointments will also be removed."))return;
+  const i=DB.patients.findIndex(x=>x.PatientID===id);DB.patients.splice(i,1);
+  toast("Patient deleted");drawPatients();
+}
+
+// ══════════════════════════════════════════════
+//  DOCTORS
+// ══════════════════════════════════════════════
+function renderDoctors(){
+  document.getElementById("topbar-actions").innerHTML=`<button class="btn btn-primary" onclick="openDoctorModal()">+ Add Doctor</button>`;
+  document.getElementById("content").innerHTML=`
+  <div class="toolbar">
+    <div class="search-box"><span style="color:var(--text3)">⌕</span><input id="search-inp" placeholder="Search name, specialization, license…" oninput="dSearch(this.value)"></div>
+    <select class="fsel" onchange="dFilter(this.value)"><option value="">All Statuses</option><option>Available</option><option>Busy</option><option>Off-Duty</option></select>
+  </div>
+  <div class="tc">
+    <div class="tc-head"><span class="tc-title">Doctors</span><span class="tc-cnt" id="d-cnt"></span></div>
+    <table><thead><tr><th>ID</th><th>Name</th><th>License</th><th>Specialization</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody id="d-body"></tbody></table>
+    <div class="pag" id="d-pag"></div>
+  </div>
+  <div class="mb" id="doctor-modal">
+    <div class="modal">
+      <div class="mhd"><span class="mtitle" id="dm-title">Add Doctor</span><button class="mclose" onclick="closeModal('doctor-modal')">×</button></div>
+      <div class="mbody">
+        <input type="hidden" id="edit-id">
+        <div class="fgrid">
+          <div class="fg"><label class="flbl">First Name<span>*</span></label><input class="fi" id="df-first"><span class="ferr" id="de-first"></span></div>
+          <div class="fg"><label class="flbl">Last Name<span>*</span></label><input class="fi" id="df-last"><span class="ferr" id="de-last"></span></div>
+          <div class="fg"><label class="flbl">License Number<span>*</span></label><input class="fi" id="df-lic" placeholder="LIC-1001"><span class="ferr" id="de-lic"></span></div>
+          <div class="fg"><label class="flbl">Specialization<span>*</span></label><input class="fi" id="df-spec"><span class="ferr" id="de-spec"></span></div>
+          <div class="fg"><label class="flbl">Rating (0–5)</label><input class="fi" id="df-rating" type="number" min="0" max="5" step="0.1" placeholder="5.0"></div>
+          <div class="fg"><label class="flbl">Status</label><select class="fsel" id="df-status"><option>Available</option><option>Busy</option><option>Off-Duty</option></select></div>
+        </div>
+      </div>
+      <div class="mfoot"><button class="btn btn-outline" onclick="closeModal('doctor-modal')">Cancel</button><button class="btn btn-primary" onclick="saveDoctor()">Save Doctor</button></div>
+    </div>
+  </div>`;
+  drawDoctors();
+}
+let docStatusF="";
+function dFiltered(){const q=curQ.toLowerCase();return DB.doctors.filter(d=>`${d.FirstName} ${d.LastName} ${d.Specialization} ${d.LicenseNumber}`.toLowerCase().includes(q)&&(!docStatusF||d.Status===docStatusF));}
+function drawDoctors(){
+  const data=dFiltered(),slice=data.slice((curP-1)*PER,curP*PER);
+  document.getElementById("d-cnt").textContent=`${data.length} records`;
+  document.getElementById("d-body").innerHTML=slice.length?slice.map(d=>`
+    <tr>
+      <td class="tdid">#${d.DoctorID}</td>
+      <td><div class="ncell">${av("Dr. "+d.FirstName+" "+d.LastName)}<span class="tdbold">Dr. ${d.FirstName} ${d.LastName}</span></div></td>
+      <td class="tdmono">${d.LicenseNumber}</td><td>${d.Specialization}</td>
+      <td>${sts(d.Rating)} <span class="tdmono" style="font-size:11px">${Number(d.Rating).toFixed(1)}</span></td>
+      <td>${bdg(d.Status)}</td>
+      <td><div class="acel"><button class="btn btn-outline btn-sm" onclick="editDoctor(${d.DoctorID})">✏ Edit</button><button class="btn btn-danger btn-sm" onclick="delDoctor(${d.DoctorID})">✕</button></div></td>
+    </tr>`).join(""):`<tr><td colspan="7"><div class="empty"><div class="eico">🔍</div><p>No doctors found</p></div></td></tr>`;
+  pag("d-pag",data.length,curP,PER,"dGoPage");
+}
+function dGoPage(n){curP=n;drawDoctors();}
+const dSearch=deb(v=>{curQ=v;curP=1;drawDoctors();});
+function dFilter(v){docStatusF=v;curP=1;drawDoctors();}
+function openDoctorModal(){document.getElementById("dm-title").textContent="Add Doctor";openModal("doctor-modal");}
+function editDoctor(id){
+  const d=DB.doctors.find(x=>x.DoctorID===id);
+  document.getElementById("dm-title").textContent="Edit Doctor";
+  document.getElementById("edit-id").value=id;
+  document.getElementById("df-first").value=d.FirstName;
+  document.getElementById("df-last").value=d.LastName;
+  document.getElementById("df-lic").value=d.LicenseNumber;
+  document.getElementById("df-spec").value=d.Specialization;
+  document.getElementById("df-rating").value=d.Rating;
+  document.getElementById("df-status").value=d.Status;
+  openModal("doctor-modal");
+}
+function saveDoctor(){
+  const v=id=>document.getElementById(id).value.trim();
+  let ok=true;
+  ["de-first","de-last","de-lic","de-spec"].forEach(id=>document.getElementById(id).textContent="");
+  if(!v("df-first")){document.getElementById("de-first").textContent="Required";ok=false;}
+  if(!v("df-last")){document.getElementById("de-last").textContent="Required";ok=false;}
+  if(!v("df-lic")){document.getElementById("de-lic").textContent="Required";ok=false;}
+  if(!v("df-spec")){document.getElementById("de-spec").textContent="Required";ok=false;}
+  if(!ok)return;
+  const id=parseInt(document.getElementById("edit-id").value||0);
+  const obj={FirstName:v("df-first"),LastName:v("df-last"),LicenseNumber:v("df-lic"),Specialization:v("df-spec"),Rating:parseFloat(v("df-rating")||5),Status:v("df-status")};
+  if(id){const i=DB.doctors.findIndex(x=>x.DoctorID===id);DB.doctors[i]={...DB.doctors[i],...obj};toast("Doctor updated!");}
+  else{DB.doctors.unshift({DoctorID:nextId.doctors++,...obj});toast("Doctor added!");}
+  closeModal("doctor-modal");drawDoctors();
+}
+async function delDoctor(id){
+  if(!await confirm2("Delete this doctor?"))return;
+  DB.doctors.splice(DB.doctors.findIndex(x=>x.DoctorID===id),1);
+  toast("Doctor deleted");drawDoctors();
+}
+
+// ══════════════════════════════════════════════
+//  DEPARTMENTS
+// ══════════════════════════════════════════════
+function renderDepartments(){
+  document.getElementById("topbar-actions").innerHTML=`<button class="btn btn-primary" onclick="openDeptModal()">+ Add Department</button>`;
+  document.getElementById("content").innerHTML=`
+  <div class="tc">
+    <div class="tc-head"><span class="tc-title">Departments</span><span class="tc-cnt" id="dep-cnt"></span></div>
+    <table><thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Rooms</th><th>Appointments</th><th>Actions</th></tr></thead>
+    <tbody id="dep-body"></tbody></table>
+    <div class="pag" id="dep-pag"></div>
+  </div>
+  <div class="mb" id="dept-modal">
+    <div class="modal">
+      <div class="mhd"><span class="mtitle" id="depm-title">Add Department</span><button class="mclose" onclick="closeModal('dept-modal')">×</button></div>
+      <div class="mbody">
+        <input type="hidden" id="edit-id">
+        <div class="fgrid">
+          <div class="fg full"><label class="flbl">Department Name<span>*</span></label><input class="fi" id="depf-name" placeholder="e.g. Cardiology"><span class="ferr" id="depe-name"></span></div>
+          <div class="fg full"><label class="flbl">Location<span>*</span></label><input class="fi" id="depf-loc" placeholder="e.g. Building A, Floor 3"><span class="ferr" id="depe-loc"></span></div>
+        </div>
+      </div>
+      <div class="mfoot"><button class="btn btn-outline" onclick="closeModal('dept-modal')">Cancel</button><button class="btn btn-primary" onclick="saveDept()">Save Department</button></div>
+    </div>
+  </div>`;
+  drawDepts();
+}
+function drawDepts(){
+  const data=DB.departments,slice=data.slice((curP-1)*PER,curP*PER);
+  document.getElementById("dep-cnt").textContent=`${data.length} records`;
+  document.getElementById("dep-body").innerHTML=slice.map(d=>`
+    <tr>
+      <td class="tdid">#${d.DepartmentID}</td><td class="tdbold">${d.Name}</td>
+      <td class="tdmuted">${d.Location}</td>
+      <td class="tdmono">${d.RoomCount}</td><td class="tdmono">${d.AppointmentCount}</td>
+      <td><div class="acel"><button class="btn btn-outline btn-sm" onclick="editDept(${d.DepartmentID})">✏ Edit</button><button class="btn btn-danger btn-sm" onclick="delDept(${d.DepartmentID})">✕</button></div></td>
+    </tr>`).join("");
+  pag("dep-pag",data.length,curP,PER,"depGoPage");
+}
+function depGoPage(n){curP=n;drawDepts();}
+function openDeptModal(){document.getElementById("depm-title").textContent="Add Department";openModal("dept-modal");}
+function editDept(id){
+  const d=DB.departments.find(x=>x.DepartmentID===id);
+  document.getElementById("depm-title").textContent="Edit Department";
+  document.getElementById("edit-id").value=id;
+  document.getElementById("depf-name").value=d.Name;
+  document.getElementById("depf-loc").value=d.Location;
+  openModal("dept-modal");
+}
+function saveDept(){
+  const v=id=>document.getElementById(id).value.trim();
+  let ok=true;
+  ["depe-name","depe-loc"].forEach(id=>document.getElementById(id).textContent="");
+  if(!v("depf-name")){document.getElementById("depe-name").textContent="Required";ok=false;}
+  if(!v("depf-loc")){document.getElementById("depe-loc").textContent="Required";ok=false;}
+  if(!ok)return;
+  const id=parseInt(document.getElementById("edit-id").value||0);
+  const obj={Name:v("depf-name"),Location:v("depf-loc"),RoomCount:0,AppointmentCount:0};
+  if(id){const i=DB.departments.findIndex(x=>x.DepartmentID===id);DB.departments[i]={...DB.departments[i],Name:obj.Name,Location:obj.Location};toast("Department updated!");}
+  else{DB.departments.push({DepartmentID:nextId.departments++,...obj});toast("Department added!");}
+  closeModal("dept-modal");drawDepts();
+}
+async function delDept(id){
+  if(!await confirm2("Delete this department?"))return;
+  DB.departments.splice(DB.departments.findIndex(x=>x.DepartmentID===id),1);
+  toast("Department deleted");drawDepts();
+}
+
+// ══════════════════════════════════════════════
+//  ROOMS
+// ══════════════════════════════════════════════
+function renderRooms(){
+  document.getElementById("topbar-actions").innerHTML=`<button class="btn btn-primary" onclick="openRoomModal()">+ Add Room</button>`;
+  document.getElementById("content").innerHTML=`
+  <div class="toolbar">
+    <select class="fsel" onchange="rFilterType(this.value)"><option value="">All Types</option><option>General</option><option>ICU</option><option>Operating</option><option>Recovery</option><option>Consultation</option></select>
+    <select class="fsel" onchange="rFilterStatus(this.value)"><option value="">All Statuses</option><option>Available</option><option>Occupied</option><option>Maintenance</option></select>
+  </div>
+  <div class="tc">
+    <div class="tc-head"><span class="tc-title">Rooms</span><span class="tc-cnt" id="r-cnt"></span></div>
+    <table><thead><tr><th>ID</th><th>Room No.</th><th>Department</th><th>Type</th><th>Capacity</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody id="r-body"></tbody></table>
+    <div class="pag" id="r-pag"></div>
+  </div>
+  <div class="mb" id="room-modal">
+    <div class="modal">
+      <div class="mhd"><span class="mtitle" id="rm-title">Add Room</span><button class="mclose" onclick="closeModal('room-modal')">×</button></div>
+      <div class="mbody">
+        <input type="hidden" id="edit-id">
+        <div class="fgrid">
+          <div class="fg"><label class="flbl">Room Number<span>*</span></label><input class="fi" id="rf-num" placeholder="C-101"><span class="ferr" id="re-num"></span></div>
+          <div class="fg"><label class="flbl">Department<span>*</span></label><select class="fsel" id="rf-dept"><option value="">Select…</option>${DB.departments.map(d=>`<option value="${d.DepartmentID}">${d.Name}</option>`).join("")}</select><span class="ferr" id="re-dept"></span></div>
+          <div class="fg"><label class="flbl">Room Type<span>*</span></label><select class="fsel" id="rf-type"><option value="">Select…</option><option>General</option><option>ICU</option><option>Operating</option><option>Recovery</option><option>Consultation</option></select><span class="ferr" id="re-type"></span></div>
+          <div class="fg"><label class="flbl">Capacity (1–20)<span>*</span></label><input class="fi" id="rf-cap" type="number" min="1" max="20" placeholder="2"><span class="ferr" id="re-cap"></span></div>
+          <div class="fg"><label class="flbl">Status</label><select class="fsel" id="rf-status"><option>Available</option><option>Occupied</option><option>Maintenance</option></select></div>
+        </div>
+      </div>
+      <div class="mfoot"><button class="btn btn-outline" onclick="closeModal('room-modal')">Cancel</button><button class="btn btn-primary" onclick="saveRoom()">Save Room</button></div>
+    </div>
+  </div>`;
+  drawRooms();
+}
+let rTypeF="",rStatF="";
+function rFiltered(){return DB.rooms.filter(r=>(!rTypeF||r.RoomType===rTypeF)&&(!rStatF||r.Status===rStatF));}
+function drawRooms(){
+  const data=rFiltered(),slice=data.slice((curP-1)*PER,curP*PER);
+  document.getElementById("r-cnt").textContent=`${data.length} records`;
+  document.getElementById("r-body").innerHTML=slice.length?slice.map(r=>`
+    <tr>
+      <td class="tdid">#${r.RoomID}</td><td class="tdbold tdmono">${r.RoomNumber}</td>
+      <td>${r.DepartmentName}</td><td>${bdg(r.RoomType)}</td>
+      <td class="tdmono">${r.Capacity}</td><td>${bdg(r.Status)}</td>
+      <td><div class="acel"><button class="btn btn-outline btn-sm" onclick="editRoom(${r.RoomID})">✏ Edit</button><button class="btn btn-danger btn-sm" onclick="delRoom(${r.RoomID})">✕</button></div></td>
+    </tr>`).join(""):`<tr><td colspan="7"><div class="empty"><div class="eico">🚪</div><p>No rooms found</p></div></td></tr>`;
+  pag("r-pag",data.length,curP,PER,"rGoPage");
+}
+function rGoPage(n){curP=n;drawRooms();}
+function rFilterType(v){rTypeF=v;curP=1;drawRooms();}
+function rFilterStatus(v){rStatF=v;curP=1;drawRooms();}
+function openRoomModal(){document.getElementById("rm-title").textContent="Add Room";openModal("room-modal");}
+function editRoom(id){
+  const r=DB.rooms.find(x=>x.RoomID===id);
+  document.getElementById("rm-title").textContent="Edit Room";
+  document.getElementById("edit-id").value=id;
+  document.getElementById("rf-num").value=r.RoomNumber;
+  document.getElementById("rf-dept").value=r.DepartmentID;
+  document.getElementById("rf-type").value=r.RoomType;
+  document.getElementById("rf-cap").value=r.Capacity;
+  document.getElementById("rf-status").value=r.Status;
+  openModal("room-modal");
+}
+function saveRoom(){
+  const v=id=>document.getElementById(id).value.trim();
+  let ok=true;
+  ["re-num","re-dept","re-type","re-cap"].forEach(id=>document.getElementById(id).textContent="");
+  if(!v("rf-num")){document.getElementById("re-num").textContent="Required";ok=false;}
+  if(!v("rf-dept")){document.getElementById("re-dept").textContent="Required";ok=false;}
+  if(!v("rf-type")){document.getElementById("re-type").textContent="Required";ok=false;}
+  const cap=parseInt(v("rf-cap"));if(!cap||cap<1||cap>20){document.getElementById("re-cap").textContent="Must be 1–20";ok=false;}
+  if(!ok)return;
+  const dept=DB.departments.find(d=>d.DepartmentID===parseInt(v("rf-dept")));
+  const id=parseInt(document.getElementById("edit-id").value||0);
+  const obj={RoomNumber:v("rf-num"),DepartmentID:parseInt(v("rf-dept")),DepartmentName:dept?.Name||"",RoomType:v("rf-type"),Capacity:cap,Status:v("rf-status")};
+  if(id){const i=DB.rooms.findIndex(x=>x.RoomID===id);DB.rooms[i]={...DB.rooms[i],...obj};toast("Room updated!");}
+  else{DB.rooms.push({RoomID:nextId.rooms++,...obj});toast("Room added!");}
+  closeModal("room-modal");drawRooms();
+}
+async function delRoom(id){
+  if(!await confirm2("Delete this room?"))return;
+  DB.rooms.splice(DB.rooms.findIndex(x=>x.RoomID===id),1);
+  toast("Room deleted");drawRooms();
+}
+
+// ══════════════════════════════════════════════
+//  APPOINTMENTS
+// ══════════════════════════════════════════════
+function renderAppointments(){
+  document.getElementById("topbar-actions").innerHTML=`<button class="btn btn-primary" onclick="openApptModal()">+ Add Appointment</button>`;
+  document.getElementById("content").innerHTML=`
+  <div class="toolbar">
+    <div class="search-box"><span style="color:var(--text3)">⌕</span><input id="search-inp" placeholder="Search patient, doctor, department…" oninput="aSearch(this.value)"></div>
+    <select class="fsel" onchange="aFilter(this.value)"><option value="">All Statuses</option><option>Scheduled</option><option>Completed</option><option>Cancelled</option></select>
+  </div>
+  <div class="tc">
+    <div class="tc-head"><span class="tc-title">Appointments</span><span class="tc-cnt" id="a-cnt"></span></div>
+    <table><thead><tr><th>ID</th><th>Patient</th><th>Doctor</th><th>Department</th><th>Scheduled</th><th>Status</th><th>Fee</th><th>Actions</th></tr></thead>
+    <tbody id="a-body"></tbody></table>
+    <div class="pag" id="a-pag"></div>
+  </div>
+  <div class="mb" id="appt-modal">
+    <div class="modal">
+      <div class="mhd"><span class="mtitle" id="am-title">Add Appointment</span><button class="mclose" onclick="closeModal('appt-modal')">×</button></div>
+      <div class="mbody">
+        <input type="hidden" id="edit-id">
+        <div class="fgrid">
+          <div class="fg"><label class="flbl">Patient<span>*</span></label><select class="fsel" id="af-pat"><option value="">Select…</option>${DB.patients.map(p=>`<option value="${p.PatientID}">${p.FirstName} ${p.LastName}</option>`).join("")}</select><span class="ferr" id="ae-pat"></span></div>
+          <div class="fg"><label class="flbl">Doctor<span>*</span></label><select class="fsel" id="af-doc"><option value="">Select…</option>${DB.doctors.map(d=>`<option value="${d.DoctorID}">Dr. ${d.FirstName} ${d.LastName}</option>`).join("")}</select><span class="ferr" id="ae-doc"></span></div>
+          <div class="fg"><label class="flbl">Department<span>*</span></label><select class="fsel" id="af-dept"><option value="">Select…</option>${DB.departments.map(d=>`<option value="${d.DepartmentID}">${d.Name}</option>`).join("")}</select><span class="ferr" id="ae-dept"></span></div>
+          <div class="fg"><label class="flbl">Status</label><select class="fsel" id="af-status"><option>Scheduled</option><option>Completed</option><option>Cancelled</option></select></div>
+          <div class="fg"><label class="flbl">Scheduled Time<span>*</span></label><input class="fi" id="af-time" type="datetime-local"><span class="ferr" id="ae-time"></span></div>
+          <div class="fg"><label class="flbl">Consultation Fee ($)</label><input class="fi" id="af-fee" type="number" min="0" step="0.01" placeholder="0.00"></div>
+          <div class="fg full"><label class="flbl">Reason for Visit<span>*</span></label><textarea class="fta" id="af-reason" placeholder="Describe the visit reason…"></textarea><span class="ferr" id="ae-reason"></span></div>
+        </div>
+      </div>
+      <div class="mfoot"><button class="btn btn-outline" onclick="closeModal('appt-modal')">Cancel</button><button class="btn btn-primary" onclick="saveAppt()">Save Appointment</button></div>
+    </div>
+  </div>`;
+  drawAppts();
+}
+let apptStatF="";
+function aFiltered(){const q=curQ.toLowerCase();return DB.appointments.filter(a=>`${a.PatientName} ${a.DoctorName} ${a.DepartmentName}`.toLowerCase().includes(q)&&(!apptStatF||a.Status===apptStatF));}
+function drawAppts(){
+  const data=aFiltered(),slice=data.slice((curP-1)*PER,curP*PER);
+  document.getElementById("a-cnt").textContent=`${data.length} records`;
+  document.getElementById("a-body").innerHTML=slice.length?slice.map(a=>`
+    <tr>
+      <td class="tdid">#${a.AppointmentID}</td><td class="tdbold">${a.PatientName}</td>
+      <td style="color:var(--accent)">${a.DoctorName}</td><td>${a.DepartmentName}</td>
+      <td class="tdmono tdmuted">${a.ScheduledTime}</td><td>${bdg(a.Status)}</td>
+      <td class="tdmono tdbold">$${Number(a.ConsultationFee).toFixed(2)}</td>
+      <td><div class="acel"><button class="btn btn-outline btn-sm" onclick="editAppt(${a.AppointmentID})">✏ Edit</button><button class="btn btn-danger btn-sm" onclick="delAppt(${a.AppointmentID})">✕</button></div></td>
+    </tr>`).join(""):`<tr><td colspan="8"><div class="empty"><div class="eico">📅</div><p>No appointments found</p></div></td></tr>`;
+  pag("a-pag",data.length,curP,PER,"aGoPage");
+}
+function aGoPage(n){curP=n;drawAppts();}
+const aSearch=deb(v=>{curQ=v;curP=1;drawAppts();});
+function aFilter(v){apptStatF=v;curP=1;drawAppts();}
+function openApptModal(){document.getElementById("am-title").textContent="Add Appointment";openModal("appt-modal");}
+function editAppt(id){
+  const a=DB.appointments.find(x=>x.AppointmentID===id);
+  document.getElementById("am-title").textContent="Edit Appointment";
+  document.getElementById("edit-id").value=id;
+  document.getElementById("af-pat").value=a.PatientID;
+  document.getElementById("af-doc").value=a.DoctorID;
+  document.getElementById("af-dept").value=a.DepartmentID;
+  document.getElementById("af-status").value=a.Status;
+  document.getElementById("af-time").value=a.ScheduledTime.replace(" ","T");
+  document.getElementById("af-fee").value=a.ConsultationFee;
+  document.getElementById("af-reason").value=a.ReasonForVisit||"";
+  openModal("appt-modal");
+}
+function saveAppt(){
+  const v=id=>document.getElementById(id).value.trim();
+  let ok=true;
+  ["ae-pat","ae-doc","ae-dept","ae-time","ae-reason"].forEach(id=>document.getElementById(id).textContent="");
+  if(!v("af-pat")){document.getElementById("ae-pat").textContent="Required";ok=false;}
+  if(!v("af-doc")){document.getElementById("ae-doc").textContent="Required";ok=false;}
+  if(!v("af-dept")){document.getElementById("ae-dept").textContent="Required";ok=false;}
+  if(!v("af-time")){document.getElementById("ae-time").textContent="Required";ok=false;}
+  if(!v("af-reason")){document.getElementById("ae-reason").textContent="Required";ok=false;}
+  if(!ok)return;
+  const pat=DB.patients.find(p=>p.PatientID===parseInt(v("af-pat")));
+  const doc=DB.doctors.find(d=>d.DoctorID===parseInt(v("af-doc")));
+  const dept=DB.departments.find(d=>d.DepartmentID===parseInt(v("af-dept")));
+  const id=parseInt(document.getElementById("edit-id").value||0);
+  const obj={PatientID:parseInt(v("af-pat")),DoctorID:parseInt(v("af-doc")),DepartmentID:parseInt(v("af-dept")),PatientName:`${pat.FirstName} ${pat.LastName}`,DoctorName:`Dr. ${doc.FirstName} ${doc.LastName}`,DepartmentName:dept.Name,ScheduledTime:v("af-time").replace("T"," "),Status:v("af-status"),ConsultationFee:parseFloat(v("af-fee")||0),ReasonForVisit:v("af-reason")};
+  if(id){const i=DB.appointments.findIndex(x=>x.AppointmentID===id);DB.appointments[i]={...DB.appointments[i],...obj};toast("Appointment updated!");}
+  else{DB.appointments.unshift({AppointmentID:nextId.appointments++,...obj});toast("Appointment added!");}
+  closeModal("appt-modal");drawAppts();
+}
+async function delAppt(id){
+  if(!await confirm2("Delete this appointment?"))return;
+  DB.appointments.splice(DB.appointments.findIndex(x=>x.AppointmentID===id),1);
+  toast("Appointment deleted");drawAppts();
+}
+
+// ══════════════════════════════════════════════
+//  BILLS
+// ══════════════════════════════════════════════
+function renderBills(){
+  document.getElementById("topbar-actions").innerHTML=`<button class="btn btn-primary" onclick="openBillModal()">+ Add Bill</button>`;
+  document.getElementById("content").innerHTML=`
+  <div class="toolbar">
+    <select class="fsel" onchange="bFilter('status',this.value)"><option value="">All Statuses</option><option>Paid</option><option>Pending</option><option>Failed</option></select>
+    <select class="fsel" onchange="bFilter('method',this.value)"><option value="">All Methods</option><option>Cash</option><option>Card</option><option>Insurance</option></select>
+  </div>
+  <div class="tc">
+    <div class="tc-head"><span class="tc-title">Bills</span><span class="tc-cnt" id="b-cnt"></span><span style="margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--green)" id="b-total"></span></div>
+    <table><thead><tr><th>ID</th><th>Appointment</th><th>Patient</th><th>Amount</th><th>Method</th><th>Bill Date</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody id="b-body"></tbody></table>
+    <div class="pag" id="b-pag"></div>
+  </div>
+  <div class="mb" id="bill-modal">
+    <div class="modal">
+      <div class="mhd"><span class="mtitle" id="bm-title">Add Bill</span><button class="mclose" onclick="closeModal('bill-modal')">×</button></div>
+      <div class="mbody">
+        <input type="hidden" id="edit-id">
+        <div class="fgrid">
+          <div class="fg full"><label class="flbl">Appointment<span>*</span></label><select class="fsel" id="bf-appt"><option value="">Select…</option>${DB.appointments.map(a=>`<option value="${a.AppointmentID}">#${a.AppointmentID} — ${a.PatientName}</option>`).join("")}</select><span class="ferr" id="be-appt"></span></div>
+          <div class="fg"><label class="flbl">Amount ($)<span>*</span></label><input class="fi" id="bf-amt" type="number" min="0" step="0.01" placeholder="0.00"><span class="ferr" id="be-amt"></span></div>
+          <div class="fg"><label class="flbl">Payment Method</label><select class="fsel" id="bf-method"><option>Cash</option><option>Card</option><option>Insurance</option></select></div>
+          <div class="fg"><label class="flbl">Status</label><select class="fsel" id="bf-status"><option>Pending</option><option>Paid</option><option>Failed</option></select></div>
+          <div class="fg"><label class="flbl">Bill Date</label><input class="fi" id="bf-date" type="date"></div>
+        </div>
+      </div>
+      <div class="mfoot"><button class="btn btn-outline" onclick="closeModal('bill-modal')">Cancel</button><button class="btn btn-primary" onclick="saveBill()">Save Bill</button></div>
+    </div>
+  </div>`;
+  drawBills();
+}
+let bStatF="",bMethF="";
+function bFiltered(){return DB.bills.filter(b=>(!bStatF||b.Status===bStatF)&&(!bMethF||b.Method===bMethF));}
+function drawBills(){
+  const data=bFiltered(),slice=data.slice((curP-1)*PER,curP*PER);
+  const paid=data.filter(b=>b.Status==="Paid").reduce((s,b)=>s+b.Amount,0);
+  document.getElementById("b-cnt").textContent=`${data.length} records`;
+  document.getElementById("b-total").textContent=`Paid: $${paid.toLocaleString(undefined,{minimumFractionDigits:2})}`;
+  document.getElementById("b-body").innerHTML=slice.length?slice.map(b=>{
+    const col=b.Status==="Paid"?"var(--green)":b.Status==="Failed"?"var(--red)":"var(--yellow)";
+    return`<tr>
+      <td class="tdid">#${b.BillID}</td><td class="tdid">APT-${b.AppointmentID}</td>
+      <td class="tdbold">${b.PatientName}</td>
+      <td style="font-family:var(--mono);font-weight:600;color:${col}">$${Number(b.Amount).toFixed(2)}</td>
+      <td>${bdg(b.Method)}</td><td class="tdmuted tdmono">${b.BillDate}</td><td>${bdg(b.Status)}</td>
+      <td><div class="acel"><button class="btn btn-outline btn-sm" onclick="editBill(${b.BillID})">✏ Edit</button><button class="btn btn-danger btn-sm" onclick="delBill(${b.BillID})">✕</button></div></td>
+    </tr>`;}).join(""):`<tr><td colspan="8"><div class="empty"><div class="eico">💳</div><p>No bills found</p></div></td></tr>`;
+  pag("b-pag",data.length,curP,PER,"bGoPage");
+}
+function bGoPage(n){curP=n;drawBills();}
+function bFilter(f,v){if(f==="status")bStatF=v;else bMethF=v;curP=1;drawBills();}
+function openBillModal(){
+  document.getElementById("bm-title").textContent="Add Bill";
+  document.getElementById("bf-date").value=new Date().toISOString().slice(0,10);
+  openModal("bill-modal");
+}
+function editBill(id){
+  const b=DB.bills.find(x=>x.BillID===id);
+  document.getElementById("bm-title").textContent="Edit Bill";
+  document.getElementById("edit-id").value=id;
+  document.getElementById("bf-appt").value=b.AppointmentID;
+  document.getElementById("bf-amt").value=b.Amount;
+  document.getElementById("bf-method").value=b.Method;
+  document.getElementById("bf-status").value=b.Status;
+  document.getElementById("bf-date").value=b.BillDate;
+  openModal("bill-modal");
+}
+function saveBill(){
+  const v=id=>document.getElementById(id).value.trim();
+  let ok=true;
+  ["be-appt","be-amt"].forEach(id=>document.getElementById(id).textContent="");
+  if(!v("bf-appt")){document.getElementById("be-appt").textContent="Required";ok=false;}
+  const amt=parseFloat(v("bf-amt"));if(isNaN(amt)||amt<0){document.getElementById("be-amt").textContent="Valid amount required";ok=false;}
+  if(!ok)return;
+  const appt=DB.appointments.find(a=>a.AppointmentID===parseInt(v("bf-appt")));
+  const id=parseInt(document.getElementById("edit-id").value||0);
+  const obj={AppointmentID:parseInt(v("bf-appt")),PatientName:appt?.PatientName||"",Amount:amt,Method:v("bf-method"),BillDate:v("bf-date"),Status:v("bf-status")};
+  if(id){const i=DB.bills.findIndex(x=>x.BillID===id);DB.bills[i]={...DB.bills[i],...obj};toast("Bill updated!");}
+  else{DB.bills.unshift({BillID:nextId.bills++,...obj});toast("Bill added!");}
+  closeModal("bill-modal");drawBills();
+}
+async function delBill(id){
+  if(!await confirm2("Delete this bill?"))return;
+  DB.bills.splice(DB.bills.findIndex(x=>x.BillID===id),1);
+  toast("Bill deleted");drawBills();
+}
+
+// ══════════════════════════════════════════════
+//  RATINGS
+// ══════════════════════════════════════════════
+function renderRatings(){
+  document.getElementById("topbar-actions").innerHTML=`<button class="btn btn-primary" onclick="openRatingModal()">+ Add Rating</button>`;
+  document.getElementById("content").innerHTML=`
+  <div class="tc">
+    <div class="tc-head"><span class="tc-title">Ratings</span><span class="tc-cnt" id="rt-cnt"></span><span style="margin-left:auto;font-size:12px;color:var(--text3)" id="rt-avg"></span></div>
+    <table><thead><tr><th>ID</th><th>Appt.</th><th>Patient</th><th>Doctor</th><th>Doctor Rating</th><th>Patient Rating</th><th>Comment</th><th>Actions</th></tr></thead>
+    <tbody id="rt-body"></tbody></table>
+    <div class="pag" id="rt-pag"></div>
+  </div>
+  <div class="mb" id="rating-modal">
+    <div class="modal">
+      <div class="mhd"><span class="mtitle" id="rtm-title">Add Rating</span><button class="mclose" onclick="closeModal('rating-modal')">×</button></div>
+      <div class="mbody">
+        <input type="hidden" id="edit-id">
+        <div class="fgrid">
+          <div class="fg full"><label class="flbl">Appointment<span>*</span></label><select class="fsel" id="rtf-appt"><option value="">Select…</option>${DB.appointments.map(a=>`<option value="${a.AppointmentID}">#${a.AppointmentID} — ${a.PatientName} (${a.Status})</option>`).join("")}</select><span class="ferr" id="rte-appt"></span></div>
+          <div class="fg"><label class="flbl">Doctor Rating (1–5)<span>*</span></label><select class="fsel" id="rtf-dr"><option value="">Select…</option>${[1,2,3,4,5].map(n=>`<option value="${n}">${n} ${"★".repeat(n)}</option>`).join("")}</select><span class="ferr" id="rte-dr"></span></div>
+          <div class="fg"><label class="flbl">Patient Rating (1–5)</label><select class="fsel" id="rtf-pr"><option value="">None</option>${[1,2,3,4,5].map(n=>`<option value="${n}">${n} ${"★".repeat(n)}</option>`).join("")}</select></div>
+          <div class="fg full"><label class="flbl">Comment</label><textarea class="fta" id="rtf-comment" placeholder="Optional feedback…"></textarea></div>
+        </div>
+      </div>
+      <div class="mfoot"><button class="btn btn-outline" onclick="closeModal('rating-modal')">Cancel</button><button class="btn btn-primary" onclick="saveRating()">Save Rating</button></div>
+    </div>
+  </div>`;
+  drawRatings();
+}
+function drawRatings(){
+  const data=DB.ratings,slice=data.slice((curP-1)*PER,curP*PER);
+  const avg=data.length?(data.reduce((s,r)=>s+r.DoctorRating,0)/data.length).toFixed(1):"—";
+  document.getElementById("rt-cnt").textContent=`${data.length} records`;
+  document.getElementById("rt-avg").textContent=`Avg doctor rating: ★ ${avg}`;
+  document.getElementById("rt-body").innerHTML=slice.length?slice.map(r=>`
+    <tr>
+      <td class="tdid">#${r.RatingID}</td><td class="tdid">APT-${r.AppointmentID}</td>
+      <td class="tdbold">${r.PatientName}</td><td style="color:var(--accent)">${r.DoctorName}</td>
+      <td>${sts(r.DoctorRating)}</td>
+      <td>${r.PatientRating?sts(r.PatientRating):'<span class="tdmuted">—</span>'}</td>
+      <td class="tdmuted" style="font-style:italic;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.Comment||"—"}</td>
+      <td><div class="acel"><button class="btn btn-outline btn-sm" onclick="editRating(${r.RatingID})">✏ Edit</button><button class="btn btn-danger btn-sm" onclick="delRating(${r.RatingID})">✕</button></div></td>
+    </tr>`).join(""):`<tr><td colspan="8"><div class="empty"><div class="eico">⭐</div><p>No ratings found</p></div></td></tr>`;
+  pag("rt-pag",data.length,curP,PER,"rtGoPage");
+}
+function rtGoPage(n){curP=n;drawRatings();}
+function openRatingModal(){document.getElementById("rtm-title").textContent="Add Rating";openModal("rating-modal");}
+function editRating(id){
+  const r=DB.ratings.find(x=>x.RatingID===id);
+  document.getElementById("rtm-title").textContent="Edit Rating";
+  document.getElementById("edit-id").value=id;
+  document.getElementById("rtf-appt").value=r.AppointmentID;
+  document.getElementById("rtf-dr").value=r.DoctorRating;
+  document.getElementById("rtf-pr").value=r.PatientRating||"";
+  document.getElementById("rtf-comment").value=r.Comment||"";
+  openModal("rating-modal");
+}
+function saveRating(){
+  const v=id=>document.getElementById(id).value.trim();
+  let ok=true;
+  ["rte-appt","rte-dr"].forEach(id=>document.getElementById(id).textContent="");
+  if(!v("rtf-appt")){document.getElementById("rte-appt").textContent="Required";ok=false;}
+  if(!v("rtf-dr")){document.getElementById("rte-dr").textContent="Required";ok=false;}
+  if(!ok)return;
+  const appt=DB.appointments.find(a=>a.AppointmentID===parseInt(v("rtf-appt")));
+  const doc=DB.doctors.find(d=>d.DoctorID===appt?.DoctorID);
+  const id=parseInt(document.getElementById("edit-id").value||0);
+  const obj={AppointmentID:parseInt(v("rtf-appt")),PatientName:appt?.PatientName||"",DoctorName:`Dr. ${doc?.FirstName||""} ${doc?.LastName||""}`,DoctorRating:parseInt(v("rtf-dr")),PatientRating:v("rtf-pr")?parseInt(v("rtf-pr")):null,Comment:v("rtf-comment")||null};
+  if(id){const i=DB.ratings.findIndex(x=>x.RatingID===id);DB.ratings[i]={...DB.ratings[i],...obj};toast("Rating updated!");}
+  else{DB.ratings.unshift({RatingID:nextId.ratings++,...obj});toast("Rating added!");}
+  closeModal("rating-modal");drawRatings();
+}
+async function delRating(id){
+  if(!await confirm2("Delete this rating?"))return;
+  DB.ratings.splice(DB.ratings.findIndex(x=>x.RatingID===id),1);
+  toast("Rating deleted");drawRatings();
+}
+
+// ══════════════════════════════════════════════
+//  PROMOTIONS
+// ══════════════════════════════════════════════
+function renderPromotions(){
+  document.getElementById("topbar-actions").innerHTML=`<button class="btn btn-primary" onclick="openPromoModal()">+ Add Promotion</button>`;
+  document.getElementById("content").innerHTML=`
+  <div class="tc">
+    <div class="tc-head"><span class="tc-title">Promotions</span><span class="tc-cnt" id="pr-cnt"></span></div>
+    <table><thead><tr><th>ID</th><th>Code</th><th>Discount</th><th>Expiry Date</th><th>Times Used</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody id="pr-body"></tbody></table>
+    <div class="pag" id="pr-pag"></div>
+  </div>
+  <div class="mb" id="promo-modal">
+    <div class="modal">
+      <div class="mhd"><span class="mtitle" id="prm-title">Add Promotion</span><button class="mclose" onclick="closeModal('promo-modal')">×</button></div>
+      <div class="mbody">
+        <input type="hidden" id="edit-id">
+        <div class="fgrid">
+          <div class="fg"><label class="flbl">Promo Code<span>*</span></label><input class="fi" id="prf-code" placeholder="SUMMER25" style="text-transform:uppercase"><span class="ferr" id="pre-code"></span></div>
+          <div class="fg"><label class="flbl">Discount % (0–100)<span>*</span></label><input class="fi" id="prf-disc" type="number" min="0" max="100" step="0.1" placeholder="10"><span class="ferr" id="pre-disc"></span></div>
+          <div class="fg"><label class="flbl">Expiry Date<span>*</span></label><input class="fi" id="prf-exp" type="date"><span class="ferr" id="pre-exp"></span></div>
+        </div>
+      </div>
+      <div class="mfoot"><button class="btn btn-outline" onclick="closeModal('promo-modal')">Cancel</button><button class="btn btn-primary" onclick="savePromo()">Save Promotion</button></div>
+    </div>
+  </div>`;
+  drawPromos();
+}
+function drawPromos(){
+  const data=DB.promotions,slice=data.slice((curP-1)*PER,curP*PER);
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById("pr-cnt").textContent=`${data.length} records`;
+  document.getElementById("pr-body").innerHTML=slice.map(p=>`
+    <tr>
+      <td class="tdid">#${p.PromoID}</td>
+      <td style="font-family:var(--mono);font-weight:700;letter-spacing:.06em;font-size:13px">${p.Code}</td>
+      <td style="font-family:var(--mono);font-size:18px;font-weight:300;color:var(--green)">${p.Discount}%</td>
+      <td class="tdmono tdmuted">${p.ExpiryDate}</td>
+      <td class="tdmono">${p.TimesUsed||0}</td>
+      <td>${p.ExpiryDate>=today?'<span class="bdg bg">Active</span>':'<span class="bdg br">Expired</span>'}</td>
+      <td><div class="acel"><button class="btn btn-outline btn-sm" onclick="editPromo(${p.PromoID})">✏ Edit</button><button class="btn btn-danger btn-sm" onclick="delPromo(${p.PromoID})">✕</button></div></td>
+    </tr>`).join("");
+  pag("pr-pag",data.length,curP,PER,"prGoPage");
+}
+function prGoPage(n){curP=n;drawPromos();}
+function openPromoModal(){document.getElementById("prm-title").textContent="Add Promotion";openModal("promo-modal");}
+function editPromo(id){
+  const p=DB.promotions.find(x=>x.PromoID===id);
+  document.getElementById("prm-title").textContent="Edit Promotion";
+  document.getElementById("edit-id").value=id;
+  document.getElementById("prf-code").value=p.Code;
+  document.getElementById("prf-disc").value=p.Discount;
+  document.getElementById("prf-exp").value=p.ExpiryDate;
+  openModal("promo-modal");
+}
+function savePromo(){
+  const v=id=>document.getElementById(id).value.trim();
+  let ok=true;
+  ["pre-code","pre-disc","pre-exp"].forEach(id=>document.getElementById(id).textContent="");
+  if(!v("prf-code")){document.getElementById("pre-code").textContent="Required";ok=false;}
+  const disc=parseFloat(v("prf-disc"));if(isNaN(disc)||disc<0||disc>100){document.getElementById("pre-disc").textContent="Must be 0–100";ok=false;}
+  if(!v("prf-exp")){document.getElementById("pre-exp").textContent="Required";ok=false;}
+  if(!ok)return;
+  const id=parseInt(document.getElementById("edit-id").value||0);
+  const obj={Code:v("prf-code").toUpperCase(),Discount:disc,ExpiryDate:v("prf-exp"),TimesUsed:0};
+  if(id){const i=DB.promotions.findIndex(x=>x.PromoID===id);DB.promotions[i]={...DB.promotions[i],...obj};toast("Promotion updated!");}
+  else{DB.promotions.push({PromoID:nextId.promotions++,...obj});toast("Promotion added!");}
+  closeModal("promo-modal");drawPromos();
+}
+async function delPromo(id){
+  if(!await confirm2("Delete this promotion?"))return;
+  DB.promotions.splice(DB.promotions.findIndex(x=>x.PromoID===id),1);
+  toast("Promotion deleted");drawPromos();
+}
+
+// Boot
+renderDashboard();
+</script>
+</body>
+</html>
